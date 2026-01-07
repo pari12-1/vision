@@ -1,0 +1,261 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Vision Pro</title>
+
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+            background: #0f172a;
+            color: #e2e8f0;
+            min-height: 100vh;
+        }
+
+        nav {
+            background: #1e293b;
+            border-bottom: 1px solid #334155;
+            padding: 16px 32px;
+        }
+
+        .logo {
+            font-size: 1.6rem;
+            font-weight: 700;
+            background: linear-gradient(135deg,#667eea,#764ba2);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .container {
+            max-width: 900px;
+            margin: 40px auto;
+            padding: 0 20px;
+        }
+
+        header {
+            text-align: center;
+            margin-bottom: 40px;
+        }
+
+        h1 {
+            font-size: 2.5rem;
+            background: linear-gradient(135deg,#667eea,#764ba2);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .subtitle {
+            color: #94a3b8;
+            margin-top: 8px;
+        }
+
+        .upload-box {
+            background: #1e293b;
+            border: 1px solid #334155;
+            border-radius: 20px;
+            padding: 40px;
+            text-align: center;
+        }
+
+        .drop-zone {
+            border: 3px dashed #667eea;
+            border-radius: 15px;
+            padding: 50px 20px;
+            cursor: pointer;
+        }
+
+        input[type=file] { display: none; }
+
+        .btn {
+            margin-top: 20px;
+            padding: 12px 28px;
+            border-radius: 30px;
+            border: none;
+            cursor: pointer;
+            font-weight: 600;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg,#667eea,#764ba2);
+            color: white;
+        }
+
+        .btn-danger {
+            background: #ef4444;
+            color: white;
+        }
+
+        .preview {
+            background: #020617;
+            padding: 20px;
+            border-radius: 20px;
+            border: 1px solid #334155;
+            margin-top: 20px;
+            display: none;
+        }
+
+        .preview img {
+            max-width: 350px;
+            max-height: 350px;
+            margin: 20px auto;
+            display: block;
+            border-radius: 15px;
+            object-fit: contain;
+        }
+
+        .results {
+            margin-top: 25px;
+            display: grid;
+            grid-template-columns: repeat(auto-fit,minmax(220px,1fr));
+            gap: 15px;
+        }
+
+        .result-card {
+            background: #020617;
+            border: 1px solid #334155;
+            border-radius: 14px;
+            padding: 18px;
+        }
+
+        .label {
+            font-size: 0.75rem;
+            color: #94a3b8;
+            text-transform: uppercase;
+        }
+
+        .value {
+            font-size: 1.1rem;
+            font-weight: 600;
+            margin-top: 6px;
+        }
+
+        .loading {
+            margin-top: 20px;
+            color: #38bdf8;
+            display: none;
+        }
+    </style>
+</head>
+
+<body>
+
+<nav>
+    <div class="logo">⚡ AI Vision Pro</div>
+</nav>
+
+<div class="container">
+    <header>
+        <h1>Image Analysis Tool</h1>
+        <p class="subtitle">Upload an image to classify products using AI</p>
+    </header>
+
+    <div class="upload-box">
+        <div class="drop-zone" onclick="fileInput.click()">
+            <h3>📸 Drag & Drop Image</h3>
+            <p>or click to browse</p>
+            <input type="file" id="fileInput" accept="image/*">
+        </div>
+
+        <div class="preview" id="preview">
+            <img id="previewImg">
+            <div>
+                <button class="btn btn-primary" onclick="analyzeImage()">✨ Analyze</button>
+                <button class="btn btn-danger" onclick="resetAll()">🗑 Remove</button>
+            </div>
+        </div>
+
+        <div class="loading" id="loading">⏳ Analyzing image...</div>
+        <div class="results" id="results"></div>
+    </div>
+</div>
+
+<script>
+const fileInput = document.getElementById("fileInput");
+const preview = document.getElementById("preview");
+const previewImg = document.getElementById("previewImg");
+const results = document.getElementById("results");
+const loading = document.getElementById("loading");
+
+let currentFile = null;
+
+fileInput.addEventListener("change", () => {
+    currentFile = fileInput.files[0];
+    if (!currentFile) return;
+    previewImg.src = URL.createObjectURL(currentFile);
+    preview.style.display = "block";
+    results.innerHTML = "";
+});
+
+async function analyzeImage() {
+    if (!currentFile) return;
+
+    loading.style.display = "block";
+    results.innerHTML = "";
+
+    const formData = new FormData();
+    formData.append("file", currentFile);
+
+    try {
+        const res = await fetch("/analyze", { method: "POST", body: formData });
+        const data = await res.json();
+        loading.style.display = "none";
+
+        if (data.category === "unknown") {
+            results.innerHTML = `<div class="result-card">Unknown image</div>`;
+            return;
+        }
+
+        results.innerHTML = `
+            <div class="result-card">
+                <div class="label">Category</div>
+                <div class="value">${data.category}</div>
+            </div>
+
+            <div class="result-card">
+                <div class="label">Confidence</div>
+                <div class="value">${data.confidence}%</div>
+            </div>
+
+            <div class="result-card">
+                <div class="label">Price</div>
+                <div class="value">₹ ${data.price}</div>
+            </div>
+
+            <div class="result-card">
+                <div class="label">Description</div>
+                <div class="value">${data.description}</div>
+            </div>
+
+            <div class="result-card">
+                <div class="label">AI Product Details</div>
+                <div class="value" id="llmDetails">Generating...</div>
+            </div>
+        `;
+
+        const llmBox = document.getElementById("llmDetails");
+        llmBox.innerText = data.llm_details && data.llm_details.length > 20
+            ? data.llm_details
+            : "AI details not available.";
+
+    } catch (err) {
+        loading.style.display = "none";
+        alert("Error analyzing image");
+        console.error(err);
+    }
+}
+
+function resetAll() {
+    currentFile = null;
+    preview.style.display = "none";
+    previewImg.src = "";
+    fileInput.value = "";
+    results.innerHTML = "";
+    loading.style.display = "none";
+}
+</script>
+
+</body>
+</html>
