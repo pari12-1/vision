@@ -31,7 +31,7 @@ train_transform = transforms.Compose([
 # 3️⃣ Load dataset (FIXED)
 # -----------------------------
 dataset = datasets.ImageFolder(
-    root="../datasets",
+    root="datasets",
     transform=train_transform
 )
 
